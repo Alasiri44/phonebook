@@ -4,6 +4,7 @@ from sqlalchemy import or_
 from models.contacts import Contact, Base
 from db.connection import engine, session
 import time
+from models.messages import Message
 
 # Create the table
 Base.metadata.create_all(engine)
@@ -72,6 +73,67 @@ def toggle_favorite():
     status = "added to" if contact.is_favorite else "removed from"
     print(f"{contact.name} has been {status} favorites.")
 
+def log_message():
+    try:
+        contact_id = int(input("Enter contact ID: "))
+    except ValueError:
+        print("Invalid ID.")
+        return
+
+    contact = session.query(Contact).get(contact_id)
+    if not contact:
+        print("Contact not found.")
+        return
+
+    content = input("Enter message content: ").strip()
+    if not content:
+        print("Message can't be empty.")
+        return
+
+    direction = input("Is this message Sent or Received? (s/r): ").strip().lower()
+    if direction not in ['s', 'r']:
+        print("Invalid input. Use 's' for sent, 'r' for received.")
+        return
+
+    is_sent = direction == 's'
+    message = Message(content=content, is_sent=is_sent, contact=contact)
+    session.add(message)
+    session.commit()
+
+    print("Message logged.")
+
+def view_conversation():
+    try:
+        contact_id = int(input("Enter contact ID: "))
+    except ValueError:
+        print("Invalid ID.")
+        return
+
+    contact = session.query(Contact).get(contact_id)
+    if not contact:
+        print("Contact not found.")
+        return
+
+    print(f"\nConversation with {contact.name}:")
+    for msg in contact.messages:
+        direction = "You" if msg.is_sent else contact.name
+        print(f"{direction}: {msg.content}") 
+        
+def search_messages():
+    keyword = input("Enter keyword to search messages: ").strip()
+    if not keyword:
+        print("Keyword can't be empty.")
+        return
+
+    messages = session.query(Message).filter(Message.content.ilike(f"%{keyword}%")).all()
+    if not messages:
+        print("No messages found.")
+        return
+
+    for msg in messages:
+        direction = "Sent" if msg.is_sent else "Received"
+        print(f"[{msg.contact.name}] {direction}: {msg.content}")
+    
 def run_cli():
     time.sleep(2)
     while True:
@@ -82,6 +144,9 @@ def run_cli():
         print('4. Search contacts')
         print('5. Edit a contact')
         print('6. Mark/unmark favorite')
+        print('7. Log a message')
+        print('8. View conversation by contact')
+        print('9. Search messages')
         print('q. Quit')
 
         option = input('Choose an option: ').strip().lower()
@@ -120,7 +185,12 @@ def run_cli():
             edit_contact()
         elif option == '6':
             toggle_favorite()
-
+        elif option == '7':
+            log_message()
+        elif option == '8':
+            view_conversation()
+        elif option == '9':
+            search_messages()
         elif option == 'q':
             print("Exiting CLI.")
             break
