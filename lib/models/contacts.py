@@ -1,36 +1,15 @@
-import sqlite3
+from sqlalchemy import Column, Integer, String
+from  sqlalchemy.orm import declarative_base
 
-class Contact:
-    all = {}
-    def __init__(self, name, phone, email=None, id= None):
-        self.name = name
-        self.phone = phone
-        self.email = email
+Base = declarative_base()
+
+class Contact(Base):
+    __tablename__ = 'contacts'
+    
+    id = Column(Integer, primary_key = True)
+    name = Column(String, nullable = False)
+    phone = Column(String, nullable=False)
+    email = Column(String, nullable=True)
 
     def __repr__(self):
         return f"Contact(name={self.name}, phone={self.phone}, email={self.email})"
-    
-    @classmethod
-    def create_table(cls):
-        pass
-    
-    @classmethod
-    def drop_table():
-        pass
-    
-    def save(self):
-        pass
-    
-    @classmethod
-    def create(cls, name, phone, email=None):
-        pass
-    
-    @classmethod
-    def instance_from_db(cls):
-        pass
-    
-    @classmethod
-    def get_all(cls):
-        pass
-    
-    
