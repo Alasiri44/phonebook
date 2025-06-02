@@ -1,9 +1,11 @@
 # main.py
 
+from datetime import datetime
+import time
 from sqlalchemy import or_
+from models.calls import Call
 from models.contacts import Contact, Base
 from db.connection import engine, session
-import time
 from models.messages import Message
 
 # Create the table
@@ -80,7 +82,7 @@ def log_message():
         print("Invalid ID.")
         return
 
-    contact = session.query(Contact).get(contact_id)
+    contact = session.get(Contact, contact_id)
     if not contact:
         print("Contact not found.")
         return
@@ -134,6 +136,100 @@ def search_messages():
         direction = "Sent" if msg.is_sent else "Received"
         print(f"[{msg.contact.name}] {direction}: {msg.content}")
     
+def log_call():
+    try:
+        contact_id = int(input("Enter contact ID: "))
+    except ValueError:
+        print("Invalid ID.")
+        return
+
+    contact = session.get(Contact, contact_id)
+    if not contact:
+        print("Contact not found.")
+        return
+
+    print("Call type options: incoming / outgoing / missed")
+    call_type = input("Enter call type: ").strip().lower()
+    if call_type not in ['incoming', 'outgoing', 'missed']:
+        print("Invalid call type.")
+        return
+
+    # Optional: custom timestamp
+    date_input = input("Enter date and time (YYYY-MM-DD HH:MM) or press Enter for now: ").strip()
+    if date_input:
+        try:
+            timestamp = datetime.strptime(date_input, "%Y-%m-%d %H:%M")
+        except ValueError:
+            print("Invalid date format.")
+            return
+    else:
+        timestamp = datetime.utcnow()
+
+    call = Call(contact=contact, call_type=call_type, timestamp=timestamp)
+    session.add(call)
+    session.commit()
+    print("Call logged.")
+
+def filter_calls():
+    print("Filter by:")
+    print("1. Type (incoming/outgoing/missed)")
+    print("2. Date (YYYY-MM-DD)")
+
+    choice = input("Choose filter: ").strip()
+    if choice == '1':
+        call_type = input("Enter call type: ").strip().lower()
+        if call_type not in ['incoming', 'outgoing', 'missed']:
+            print("Invalid type.")
+            return
+        calls = session.query(Call).filter(Call.call_type == call_type).all()
+    elif choice == '2':
+        date_str = input("Enter date (YYYY-MM-DD): ").strip()
+        try:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            print("Invalid date format.")
+            return
+        calls = session.query(Call).filter(
+            Call.timestamp >= datetime.combine(date_obj, datetime.min.time()),
+            Call.timestamp <= datetime.combine(date_obj, datetime.max.time())
+        ).all()
+    else:
+        print("Invalid choice.")
+        return
+
+    if not calls:
+        print("No matching call logs found.")
+        return
+
+    for call in calls:
+        print(f"[{call.timestamp.strftime('%Y-%m-%d %H:%M')}] {call.call_type.capitalize()} - {call.contact.name}")
+
+
+def view_call_history():
+    choice = input("View calls for a contact? (y/n): ").strip().lower()
+    if choice == 'y':
+        try:
+            contact_id = int(input("Enter contact ID: "))
+        except ValueError:
+            print("Invalid ID.")
+            return
+
+        contact = session.get(Contact, contact_id)
+        if not contact:
+            print("Contact not found.")
+            return
+
+        calls = contact.calls
+    else:
+        calls = session.query(Call).order_by(Call.timestamp.desc()).all()
+
+    if not calls:
+        print("No call logs found.")
+        return
+
+    for call in calls:
+        print(f"[{call.timestamp.strftime('%Y-%m-%d %H:%M')}] {call.call_type.capitalize()} - {call.contact.name}")
+
 def run_cli():
     time.sleep(2)
     while True:
@@ -147,6 +243,9 @@ def run_cli():
         print('7. Log a message')
         print('8. View conversation by contact')
         print('9. Search messages')
+        print('10. Log a call')
+        print('11. View call history')
+        print('12. Filter calls')
         print('q. Quit')
 
         option = input('Choose an option: ').strip().lower()
@@ -191,6 +290,12 @@ def run_cli():
             view_conversation()
         elif option == '9':
             search_messages()
+        elif option == '10':
+            log_call()
+        elif option == '11':
+            view_call_history()
+        elif option == '12':
+            filter_calls()
         elif option == 'q':
             print("Exiting CLI.")
             break
