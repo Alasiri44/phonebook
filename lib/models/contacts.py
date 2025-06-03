@@ -8,8 +8,8 @@ class Contact(Base):
     
     id = Column(Integer, primary_key = True)
     name = Column(String, nullable = False)
-    phone = Column(String, nullable=False)
-    email = Column(String, nullable=True)
+    phone = Column(String, nullable=False, unique = True)
+    email = Column(String, nullable=True, unique= True)
     is_favorite = Column(Boolean, default=False)
 
     def __repr__(self):

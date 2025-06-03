@@ -7,9 +7,12 @@ from models.calls import Call
 from models.contacts import Contact, Base
 from db.connection import engine, session
 from models.messages import Message
+from rich.console import Console
 
 # Create the table
 Base.metadata.create_all(engine)
+
+console = Console()
 
 # Creating helper functions to manage the data
 def search_contacts():
@@ -27,22 +30,30 @@ def search_contacts():
     ).all()
 
     if results:
+        console.print('[bold green]------------------------------------------ [/bold green]')
         for c in results:
             fav = "★" if c.is_favorite else " "
             print(f"{c.id}. {c.name} - {c.phone} - {c.email or 'No email'} {fav}")
+        console.print('[bold green]------------------------------------------ [/bold green]')
     else:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("No matching contacts found.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
 
 def edit_contact():
     try:
         contact_id = int(input("Enter contact ID to edit: "))
     except ValueError:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Invalid ID.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
     contact = session.query(Contact).get(contact_id)
     if not contact:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Contact not found.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
     name = input(f"New name [{contact.name}]: ").strip() or contact.name
@@ -54,7 +65,9 @@ def edit_contact():
     contact.email = email
 
     session.commit()
+    console.print('[bold green]------------------------------------------ [/bold green]')
     print("Contact updated successfully.")
+    console.print('[bold green]------------------------------------------ [/bold green]')
 
 def toggle_favorite():
     try:
@@ -89,7 +102,9 @@ def log_message():
 
     content = input("Enter message content: ").strip()
     if not content:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Message can't be empty.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
     direction = input("Is this message Sent or Received? (s/r): ").strip().lower()
@@ -108,33 +123,43 @@ def view_conversation():
     try:
         contact_id = int(input("Enter contact ID: "))
     except ValueError:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Invalid ID.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
-    contact = session.query(Contact).get(contact_id)
+    contact = session.get(Contact, contact_id)
     if not contact:
         print("Contact not found.")
         return
 
+    console.print('[bold green]------------------------------------------ [/bold green]')
     print(f"\nConversation with {contact.name}:")
     for msg in contact.messages:
         direction = "You" if msg.is_sent else contact.name
         print(f"{direction}: {msg.content}") 
+    console.print('[bold green]------------------------------------------ [/bold green]')
         
 def search_messages():
     keyword = input("Enter keyword to search messages: ").strip()
     if not keyword:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Keyword can't be empty.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
     messages = session.query(Message).filter(Message.content.ilike(f"%{keyword}%")).all()
     if not messages:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("No messages found.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
-
+    
+    console.print('[bold green]------------------------------------------ [/bold green]')
     for msg in messages:
         direction = "Sent" if msg.is_sent else "Received"
         print(f"[{msg.contact.name}] {direction}: {msg.content}")
+    console.print('[bold green]------------------------------------------ [/bold green]')
     
 def log_call():
     try:
@@ -194,15 +219,21 @@ def filter_calls():
             Call.timestamp <= datetime.combine(date_obj, datetime.max.time())
         ).all()
     else:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("Invalid choice.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
     if not calls:
+        console.print('[bold red]------------------------------------------ [/bold red]')
         print("No matching call logs found.")
+        console.print('[bold red]------------------------------------------ [/bold red]')
         return
 
+    console.print('[bold green]------------------------------------------ [/bold green]')
     for call in calls:
         print(f"[{call.timestamp.strftime('%Y-%m-%d %H:%M')}] {call.call_type.capitalize()} - {call.contact.name}")
+    console.print('[bold green]------------------------------------------ [/bold green]')
 
 
 def view_call_history():
@@ -216,7 +247,9 @@ def view_call_history():
 
         contact = session.get(Contact, contact_id)
         if not contact:
+            console.print('[bold red]------------------------------------------ [/bold red]')
             print("Contact not found.")
+            console.print('[bold red]------------------------------------------ [/bold red]')
             return
 
         calls = contact.calls
@@ -226,14 +259,17 @@ def view_call_history():
     if not calls:
         print("No call logs found.")
         return
-
+    
+    console.print('[bold green]------------------------------------------ [/bold green]')
     for call in calls:
         print(f"[{call.timestamp.strftime('%Y-%m-%d %H:%M')}] {call.call_type.capitalize()} - {call.contact.name}")
+    console.print('[bold green]------------------------------------------ [/bold green]')
+
 
 def run_cli():
     time.sleep(2)
     while True:
-        print('\nContact Management CLI')
+        console.print('\n[bold green]------- Contact Management CLI--------- [/bold green]')
         print('1. Add new contact')
         print('2. View all contacts')
         print('3. Delete all contacts')
@@ -247,6 +283,7 @@ def run_cli():
         print('11. View call history')
         print('12. Filter calls')
         print('q. Quit')
+        console.print('[bold green]------------------------------------------ [/bold green]')
 
         option = input('Choose an option: ').strip().lower()
 
@@ -262,13 +299,17 @@ def run_cli():
             contact = Contact(name=name, phone=phone, email=email)
             session.add(contact)
             session.commit()
+            console.print('[bold green]------------------------------------------ [/bold green]')
             print(f"Saved contact: {contact}")
+            console.print('[bold green]------------------------------------------ [/bold green]')
 
         elif option == '2':
             contacts = session.query(Contact).all()
+            console.print('[bold green]------------------------------------------ [/bold green]')
             if contacts:
                 for c in contacts:
                     print(f"{c.id}. {c.name} - {c.phone} - {c.email or 'No email'}")
+                console.print('[bold green]------------------------------------------ [/bold green]')
             else:
                 print("No contacts found.")
 
@@ -277,7 +318,9 @@ def run_cli():
             if confirm == 'y':
                 session.query(Contact).delete()
                 session.commit()
+                console.print('[bold red]------------------------------------------ [/bold red]')
                 print("All contacts deleted.")
+                console.print('[bold red]------------------------------------------ [/bold red]')
         elif option == '4':
             search_contacts()
         elif option == '5':

@@ -9,7 +9,7 @@ class Call(Base):
 
     id = Column(Integer, primary_key=True)
     call_type = Column(String, nullable=False)  # "incoming", "outgoing", "missed"
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now())
     contact_id = Column(Integer, ForeignKey('contacts.id'), nullable=False)
 
     contact = relationship('Contact', backref='calls')
